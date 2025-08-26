@@ -1,3 +1,7 @@
+<?php
+    session_start();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,8 +52,13 @@
             <h1>Lost Something? Find It Here.</h1>
             <p class="lead">The official Lost and Found hub for our university community. <br> Reconnecting you with your lost belongings.</p>
             <div>
-                <a href="#" class="btn btn-custom-primary me-2">Report a Lost Item</a>
-                <a href="#" class="btn btn-custom-secondary ms-2">Browse Found Items</a>
+                <a href="<?php echo (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true) ? './methods/dashboard.php' : '#'; ?>"
+                   <?php echo (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true) ? '' : 'data-bs-toggle="modal" data-bs-target="#loginModal"'; ?>
+                   class="btn btn-custom-primary me-2">Report a Lost Item</a>
+                
+                <a href="<?php echo (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true) ? './methods/dashboard.php' : '#'; ?>"
+                   <?php echo (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] === true) ? '' : 'data-bs-toggle="modal" data-bs-target="#loginModal"'; ?>
+                   class="btn btn-custom-secondary ms-2">Browse Found Items</a>
             </div>
         </div>
     </header>
@@ -169,13 +178,13 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body p-5 pt-0">
-            <form>
+            <form action="./methods/login.php" method="post">
               <div class="form-floating mb-3">
-                <input type="email" class="form-control rounded-3" id="loginNumber" placeholder="12345678">
+                <input type="text" class="form-control rounded-3" id="loginNumber" name="loginNumber" placeholder="12345678" required>
                 <label for="loginNumber">Registration Number</label>
               </div>
               <div class="form-floating mb-3">
-                <input type="password" class="form-control rounded-3" id="loginPassword" placeholder="Password">
+                <input type="password" class="form-control rounded-3" id="loginPassword" name="loginPassword" placeholder="Password" required>
                 <label for="loginPassword">Password</label>
               </div>
               <button class="w-100 mb-2 btn btn-lg rounded-3 btn-primary" type="submit">Login</button>
@@ -195,21 +204,21 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body p-5 pt-0">
-            <form>
+            <form action="./methods/register.php" method="post">
                 <div class="form-floating mb-3">
-                <input type="text" class="form-control rounded-3" id="registerName" placeholder="John Doe">
+                <input type="text" class="form-control rounded-3" id="registerName" name="registerName" placeholder="John Doe" required>
                 <label for="registerName">Full Name</label>
               </div>
               <div class="form-floating mb-3">
-                <input type="email" class="form-control rounded-3" id="registerNumber" placeholder="12345678">
+                <input type="text" class="form-control rounded-3" id="registerNumber" name="registerNumber" placeholder="12345678" required>
                 <label for="registerNumber">Registration Number</label>
               </div>
               <div class="form-floating mb-3">
-                <input type="password" class="form-control rounded-3" id="registerPassword" placeholder="Password">
+                <input type="password" class="form-control rounded-3" id="registerPassword" name="registerPassword" placeholder="Password" required>
                 <label for="registerPassword">Password</label>
               </div>
                <div class="form-floating mb-3">
-                <input type="password" class="form-control rounded-3" id="confirmPassword" placeholder="Confirm Password">
+                <input type="password" class="form-control rounded-3" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" required>
                 <label for="confirmPassword">Confirm Password</label>
               </div>
               <button class="w-100 mb-2 btn btn-lg rounded-3 btn-primary" type="submit">Register</button>
