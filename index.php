@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lovely Professional University - Lost & Found</title>
+    <title>lawda Professional University - Lost & Found</title>
     <!-- Bootstrap CSS -->
     <link href="./css/bootstrap5.min.css" rel="stylesheet">
     <!-- Google Fonts -->
