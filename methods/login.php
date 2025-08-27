@@ -20,11 +20,17 @@
             if(password_verify($loginPassword, $user['user_password'])) {
                 
                 $_SESSION['loggedin'] = true;
+                $_SESSION['user_role'] = $user['user_role'];
                 $_SESSION['user_id'] = $user['user_registration_number'];
                 $_SESSION['user_name'] = $user['user_name'];
 
-                header("Location: ./dashboard.php");
-                exit;
+                if($user['user_role'] === "admin") {
+                    header("Location: ./admin.php");
+                    exit;
+                } else {
+                    header("Location: ./dashboard.php");
+                    exit;
+                }
 
             } else {
                 echo "<script>alert('Invalid Password. Please try again'); window.history.back();</script>";

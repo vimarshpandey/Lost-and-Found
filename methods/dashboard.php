@@ -1,6 +1,7 @@
 <?php
     ini_set('display_errors', 1);
     error_reporting(E_ALL);
+
     session_start();
 
     if(!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
@@ -53,6 +54,23 @@
                 $message = "<div class='alert alert-danger'>Error: " . mysqli_error($conn) . "</div>";
             }
         }
+
+        // --- C. HANDLE "CLAIM ITEM" SUBMISSION ---
+        elseif ($_POST['action'] == 'submit_claim') {
+            $user_id = $_SESSION['user_id'];
+            $item_id = mysqli_real_escape_string($conn, $_POST['item_id']);
+            $status = 'pending';
+            $claim_date = date("Y-m-d H:i:s");
+
+            $sql = "INSERT INTO claims (item_id, user_registration_number, status, claim_date) 
+                    VALUES ('$item_id', '$user_id', '$status', '$claim_date')";
+
+            if (mysqli_query($conn, $sql)) {
+                $message = "<div class='alert alert-success'>Your claim has been submitted successfully!</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error submitting claim: " . mysqli_error($conn) . "</div>";
+            }
+        }
     }
 
     $user_id = $_SESSION['user_id'];
@@ -73,8 +91,10 @@
     }
 
     $items_sql .= " ORDER BY date_reported DESC";
-
     $items_result = mysqli_query($conn, $items_sql);
+
+    $my_items_sql = "SELECT * FROM items WHERE user_registration_number = '$user_id' ORDER BY date_reported DESC";
+    $my_items_result = mysqli_query($conn, $my_items_sql);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -119,6 +139,9 @@
         <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="view-items-tab" data-bs-toggle="tab" data-bs-target="#viewItems" type="button" role="tab">View Items</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="my-items-tab" data-bs-toggle="tab" data-bs-target="#myItems" type="button" role="tab">My Items</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="report-lost-tab" data-bs-toggle="tab" data-bs-target="#reportLost" type="button" role="tab">Report Lost Item</button>
@@ -180,7 +203,7 @@
                                                     <strong>Date:</strong> <?php echo date("F j, Y", strtotime($item['date_reported'])); ?>
                                                 </p>
                                                 <?php if ($item['type'] == 'found'): ?>
-                                                    <button class="btn btn-success w-100 mt-2">Claim Item</button>
+                                                    <button class="btn btn-success w-100 mt-2" data-bs-toggle="modal" data-bs-target="#claimModal" data-itemid="<?php echo $item['item_id']; ?>">Claim Item</button>
                                                 <?php else: ?>
                                                     <div class="alert alert-warning text-center mt-2 p-2">Status: Lost</div>
                                                 <?php endif; ?>
@@ -191,6 +214,43 @@
                             <?php else : ?>
                                 <div class="col-12">
                                     <p class="text-center text-muted">No items found matching your criteria.</p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. My Items Tab -->
+            <div class="tab-pane fade" id="myItems" role="tabpanel">
+                <div class="card">
+                    <div class="card-body p-4">
+                        <h2 class="card-title h4 mb-4">My Reported Items</h2>
+                        <div class="row g-4">
+                            <?php if ($my_items_result && mysqli_num_rows($my_items_result) > 0) : ?>
+                                <?php while ($item = mysqli_fetch_assoc($my_items_result)) : ?>
+                                    <div class="col-md-4">
+                                        <div class="card h-100">
+                                            <img src="https://placehold.co/600x400/<?php echo $item['type'] == 'found' ? '0D6EFD' : 'FFC107'; ?>/FFFFFF?text=<?php echo ucfirst($item['type']); ?>+Item" class="card-img-top" alt="<?php echo htmlspecialchars($item['title']); ?>">
+                                            <div class="card-body">
+                                                <h5 class="card-title"><?php echo htmlspecialchars($item['title']); ?></h5>
+                                                <p class="card-text small text-muted">
+                                                    <strong>Category:</strong> <?php echo htmlspecialchars($item['category']); ?><br>
+                                                    <strong>Location:</strong> <?php echo htmlspecialchars($item['location']); ?><br>
+                                                    <strong>Date:</strong> <?php echo date("F j, Y", strtotime($item['date_reported'])); ?>
+                                                </p>
+                                                <?php if ($item['type'] == 'found'): ?>
+                                                    <button class="btn btn-secondary w-100 mt-2" disabled>Your Item</button>
+                                                <?php else: ?>
+                                                    <div class="alert alert-warning text-center mt-2 p-2">Status: Lost</div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endwhile; ?>
+                            <?php else : ?>
+                                <div class="col-12">
+                                    <p class="text-center text-muted">You have not reported any items yet.</p>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -294,8 +354,42 @@
         </div>
     </div>
 
+    <!-- Claim Item Modal -->
+    <div class="modal fade" id="claimModal" tabindex="-1" aria-labelledby="claimModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="claimModalLabel">Submit a Claim</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="dashboard.php" method="post">
+                        <input type="hidden" name="action" value="submit_claim">
+                        <input type="hidden" name="item_id" id="claimItemId">
+                        <p class="small text-muted">You are about to claim this item. An administrator will review your request.</p>
+                        <button type="submit" class="btn btn-success w-100">Confirm Claim</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS Bundle -->
     <script src="../js/bootstrap5.min.js"></script>
+
+    <script>
+        // JavaScript to pass the item ID to the claim modal
+        var claimModal = document.getElementById('claimModal');
+        claimModal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            var button = event.relatedTarget;
+            // Extract info from data-itemid attribute
+            var itemId = button.getAttribute('data-itemid');
+            // Update the modal's hidden input
+            var modalInput = claimModal.querySelector('#claimItemId');
+            modalInput.value = itemId;
+        });
+    </script>
 
 </body>
 </html>
