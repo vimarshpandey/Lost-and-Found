@@ -8,16 +8,58 @@
         exit;
     }
 
-    if(isset($_GET['action']) && $_GET['action'] == 'delete_user' && isset($_GET['id'])) {
-        $user_id_to_delete = mysqli_real_escape_string($conn, $_GET['id']);
-        $delete_sql = "DELETE FROM users WHERE user_registration_number = '$user_id_to_delete' AND user_role = 'user'";
-        mysqli_query($conn, $delete_sql);
-        header("Location: admin.php");
-        exit;
+    if(isset($_GET['action']) && isset($_GET['id'])) {
+        $action = $_GET['action'];
+        $id = mysqli_real_escape_string($conn, $_GET['id']);
+
+        // Handle user deletion
+        if($action == 'delete_user') {
+            $delete_sql = "DELETE FROM users WHERE user_registration_number = '$id' AND user_role = 'user'";
+            mysqli_query($conn, $delete_sql);
+            header("Location: admin.php");
+            exit;
+        }
+
+        // Handle claim approval
+        if($action == 'approve_claim') {
+            $item_id = mysqli_real_escape_string($conn, $_GET['item_id']);
+            // 1. Update the claim status to 'approved'
+            $approve_claim_sql = "UPDATE claims SET status = 'approved' WHERE claim_id = '$id'";
+            mysqli_query($conn, $approve_claim_sql);
+            // 2. Update the item status to 'resolved'
+            $resolve_item_sql = "UPDATE items SET status = 'resolved' WHERE item_id = '$item_id'";
+            mysqli_query($conn, $resolve_item_sql);
+            header("Location: admin.php");
+            exit;
+        }
+
+        // Handle claim rejection
+        if($action == 'reject_claim') {
+            $reject_sql = "UPDATE claims SET status = 'rejected' WHERE claim_id = '$id'";
+            mysqli_query($conn, $reject_sql);
+            header("Location: admin.php");
+            exit;
+        }
+
+        // Handle marking an item as resolved
+        if($action == 'resolve_item') {
+            $resolve_item_sql = "UPDATE items SET status = 'resolved' WHERE item_id = '$id'";
+            mysqli_query($conn, $resolve_item_sql);
+            header("Location: admin.php");
+            exit;
+        }
     }
 
     $users_sql = "SELECT user_registration_number, user_name, user_role FROM users";
     $users_result = mysqli_query($conn, $users_sql);
+
+    // Fetch all claims and join with items table to get item title
+    $claims_sql = "SELECT claims.*, items.title FROM claims JOIN items ON claims.item_id = items.item_id ORDER BY claims.claim_date DESC";
+    $claims_result = mysqli_query($conn, $claims_sql);
+
+    // Fetch all items for the Manage Items table
+    $all_items_sql = "SELECT * FROM items ORDER BY date_reported DESC";
+    $all_items_result = mysqli_query($conn, $all_items_sql);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -88,29 +130,40 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Sample Row 1 -->
-                                    <tr>
-                                        <td>101</td>
-                                        <td>iPhone 14 Pro</td>
-                                        <td>Electronics</td>
-                                        <td><span class="badge bg-info">Found</span></td>
-                                        <td>12345678</td>
-                                        <td>2025-08-26</td>
-                                        <td><span class="badge bg-success">Active</span></td>
-                                        <td><button class="btn btn-warning btn-sm">Mark Resolved</button></td>
-                                    </tr>
-                                    <!-- Sample Row 2 -->
-                                    <tr>
-                                        <td>102</td>
-                                        <td>Black Leather Wallet</td>
-                                        <td>Accessories</td>
-                                        <td><span class="badge bg-warning">Lost</span></td>
-                                        <td>87654321</td>
-                                        <td>2025-08-25</td>
-                                        <td><span class="badge bg-success">Active</span></td>
-                                        <td><button class="btn btn-warning btn-sm">Mark Resolved</button></td>
-                                    </tr>
-                                    <!-- Add more sample rows as needed -->
+                                    <?php if ($all_items_result && mysqli_num_rows($all_items_result) > 0): ?>
+                                        <?php while($item = mysqli_fetch_assoc($all_items_result)): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($item['item_id']); ?></td>
+                                                <td><?php echo htmlspecialchars($item['title']); ?></td>
+                                                <td><?php echo htmlspecialchars($item['category']); ?></td>
+                                                <td>
+                                                    <?php 
+                                                        $type_class = $item['type'] == 'found' ? 'info' : 'warning';
+                                                        echo "<span class='badge bg-$type_class'>" . ucfirst($item['type']) . "</span>";
+                                                    ?>
+                                                </td>
+                                                <td><?php echo htmlspecialchars($item['user_registration_number']); ?></td>
+                                                <td><?php echo date("Y-m-d", strtotime($item['date_reported'])); ?></td>
+                                                <td>
+                                                    <?php 
+                                                        $status_class = $item['status'] == 'active' ? 'success' : 'secondary';
+                                                        echo "<span class='badge bg-$status_class'>" . ucfirst($item['status']) . "</span>";
+                                                    ?>
+                                                </td>
+                                                <td>
+                                                    <?php if ($item['status'] == 'active'): ?>
+                                                        <a href="admin.php?action=resolve_item&id=<?php echo $item['item_id']; ?>" class="btn btn-warning btn-sm">Mark Resolved</a>
+                                                    <?php else: ?>
+                                                        -
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endwhile; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="8" class="text-center">No items found.</td>
+                                        </tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -137,30 +190,38 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Sample Row 1 -->
-                                    <tr>
-                                        <td>501</td>
-                                        <td>101</td>
-                                        <td>iPhone 14 Pro</td>
-                                        <td>87654321</td>
-                                        <td>2025-08-26</td>
-                                        <td><span class="badge bg-warning">Pending</span></td>
-                                        <td>
-                                            <button class="btn btn-success btn-sm">Approve</button>
-                                            <button class="btn btn-danger btn-sm">Reject</button>
-                                        </td>
-                                    </tr>
-                                    <!-- Sample Row 2 -->
-                                    <tr>
-                                        <td>502</td>
-                                        <td>98</td>
-                                        <td>University ID Card</td>
-                                        <td>11223344</td>
-                                        <td>2025-08-24</td>
-                                        <td><span class="badge bg-success">Approved</span></td>
-                                        <td>-</td>
-                                    </tr>
-                                    <!-- Add more sample rows as needed -->
+                                    <?php if ($claims_result && mysqli_num_rows($claims_result) > 0): ?>
+                                        <?php while($claim = mysqli_fetch_assoc($claims_result)): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($claim['claim_id']); ?></td>
+                                                <td><?php echo htmlspecialchars($claim['item_id']); ?></td>
+                                                <td><?php echo htmlspecialchars($claim['title']); ?></td>
+                                                <td><?php echo htmlspecialchars($claim['user_registration_number']); ?></td>
+                                                <td><?php echo date("F j, Y, g:i a", strtotime($claim['claim_date'])); ?></td>
+                                                <td>
+                                                    <?php 
+                                                        $status_class = 'secondary';
+                                                        if ($claim['status'] == 'approved') $status_class = 'success';
+                                                        if ($claim['status'] == 'rejected') $status_class = 'danger';
+                                                        if ($claim['status'] == 'pending') $status_class = 'warning';
+                                                        echo "<span class='badge bg-$status_class'>" . ucfirst($claim['status']) . "</span>";
+                                                    ?>
+                                                </td>
+                                                <td>
+                                                    <?php if ($claim['status'] == 'pending'): ?>
+                                                        <a href="admin.php?action=approve_claim&id=<?php echo $claim['claim_id']; ?>&item_id=<?php echo $claim['item_id']; ?>" class="btn btn-success btn-sm">Approve</a>
+                                                        <a href="admin.php?action=reject_claim&id=<?php echo $claim['claim_id']; ?>" class="btn btn-danger btn-sm">Reject</a>
+                                                    <?php else: ?>
+                                                        -
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endwhile; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="7" class="text-center">No claims found.</td>
+                                        </tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>

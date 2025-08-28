@@ -29,8 +29,12 @@
             
             if (mysqli_query($conn, $sql)) {
                 $message = "<div class='alert alert-success'>Lost item reported successfully!</div>";
+                echo "<script>window.location.href = window.location.href;</script>";
+                exit;
             } else {
                 $message = "<div class='alert alert-danger'>Error: " . mysqli_error($conn) . "</div>";
+                echo "<script>alert('Error: " . mysqli_error($conn) . "'); window.location.href = window.location.href;</script>";
+                exit;
             }
         }
 
@@ -50,8 +54,12 @@
             
             if (mysqli_query($conn, $sql)) {
                 $message = "<div class='alert alert-success'>Found item reported successfully!</div>";
+                echo "<script>window.location.href = window.location.href;</script>";
+                exit;
             } else {
                 $message = "<div class='alert alert-danger'>Error: " . mysqli_error($conn) . "</div>";
+                echo "<script>alert('Error: " . mysqli_error($conn) . "'); window.location.href = window.location.href;</script>";
+                exit;
             }
         }
 
@@ -67,8 +75,12 @@
 
             if (mysqli_query($conn, $sql)) {
                 $message = "<div class='alert alert-success'>Your claim has been submitted successfully!</div>";
+                echo "<script>window.location.href = window.location.href;</script>";
+                exit;
             } else {
                 $message = "<div class='alert alert-danger'>Error submitting claim: " . mysqli_error($conn) . "</div>";
+                echo "<script>alert('Error: " . mysqli_error($conn) . "'); window.location.href = window.location.href;</script>";
+                exit;
             }
         }
     }
@@ -134,6 +146,13 @@
 
     <!-- Main Dashboard Content -->
     <div class="container py-5">
+
+        <?php 
+            if (isset($message)) : ?>
+            <div class="mb-3">
+                <?php echo $message; ?>
+            </div>
+        <?php endif; ?>
 
         <!-- Tab Navigation -->
         <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
